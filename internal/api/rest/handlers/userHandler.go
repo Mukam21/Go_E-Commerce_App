@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Mukam21/Go_E-Commerce_App/internal/api/rest"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/dto"
+	"github.com/Mukam21/Go_E-Commerce_App/internal/repository"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/service"
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,27 +19,34 @@ func SetupUserRoutes(rh *rest.RestHandler) {
 
 	app := rh.App
 
-	svc := service.UserService{}
+	svc := service.UserService{
+		Repo: repository.NewUserRepository(rh.DB),
+		Auth: rh.Auth,
+	}
 	handler := UserHandler{
 		svc: svc,
 	}
 
+	pubRoutes := app.Group("/users")
+
 	// Publics
-	app.Post("/register", handler.Register)
-	app.Post("/login", handler.Login)
+	pubRoutes.Post("/register", handler.Register)
+	pubRoutes.Post("/login", handler.Login)
+
+	pvtRoutes := pubRoutes.Group("/", rh.Auth.Authorize)
 
 	// Private
-	app.Get("/verify", handler.GetVerificationCode)
-	app.Post("/verify", handler.Verify)
-	app.Post("/profile", handler.CreateProfile)
-	app.Get("/profile", handler.GetProfile)
+	pvtRoutes.Get("/verify", handler.GetVerificationCode)
+	pvtRoutes.Post("/verify", handler.Verify)
+	pvtRoutes.Post("/profile", handler.CreateProfile)
+	pvtRoutes.Get("/profile", handler.GetProfile)
 
-	app.Post("/cart", handler.AddToCart)
-	app.Get("/cart", handler.GetCart)
-	app.Get("/order", handler.GetOrders)
-	app.Get("/order/:id", handler.GetOrder)
+	pvtRoutes.Post("/cart", handler.AddToCart)
+	pvtRoutes.Get("/cart", handler.GetCart)
+	pvtRoutes.Get("/order", handler.GetOrders)
+	pvtRoutes.Get("/order/:id", handler.GetOrder)
 
-	app.Post("/become-seller", handler.BecomeSeller)
+	pvtRoutes.Post("/become-seller", handler.BecomeSeller)
 }
 
 func (h *UserHandler) Register(ctx *fiber.Ctx) error {
@@ -49,6 +58,7 @@ func (h *UserHandler) Register(ctx *fiber.Ctx) error {
 			"message": "please provide valid input",
 		})
 	}
+
 	token, err := h.svc.SignUp(user)
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -56,12 +66,32 @@ func (h *UserHandler) Register(ctx *fiber.Ctx) error {
 		})
 	}
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": token,
+		"message": "register",
+		"token":   token,
 	})
 }
 func (h *UserHandler) Login(ctx *fiber.Ctx) error {
+
+	loginInput := dto.UserLogin{}
+	err := ctx.BodyParser(&loginInput)
+
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(&fiber.Map{
+			"message": "please provide valid input",
+		})
+	}
+
+	token, err := h.svc.Login(loginInput.Email, loginInput.Password)
+
+	if err != nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(&fiber.Map{
+			"message": "please provide correct user id password",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
 		"message": "login",
+		"token":   token,
 	})
 }
 func (h *UserHandler) GetVerificationCode(ctx *fiber.Ctx) error {
@@ -80,8 +110,13 @@ func (h *UserHandler) CreateProfile(ctx *fiber.Ctx) error {
 	})
 }
 func (h *UserHandler) GetProfile(ctx *fiber.Ctx) error {
+
+	user := h.svc.Auth.GetCurrentUser(ctx)
+	log.Println(user)
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
 		"message": "get profile",
+		"user":    user,
 	})
 }
 func (h *UserHandler) AddToCart(ctx *fiber.Ctx) error {

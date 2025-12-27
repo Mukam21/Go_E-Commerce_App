@@ -1,27 +1,60 @@
 package service
 
 import (
-	"log"
+	"errors"
 
 	"github.com/Mukam21/Go_E-Commerce_App/internal/domain"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/dto"
+	"github.com/Mukam21/Go_E-Commerce_App/internal/helper"
+	"github.com/Mukam21/Go_E-Commerce_App/internal/repository"
 )
 
 type UserService struct {
+	Repo repository.UserRepository
+	Auth helper.Auth
 }
 
 func (s UserService) SignUp(input dto.UserSignUp) (string, error) {
-	log.Println(input)
 
-	return "this-is-my-token-as-now", nil
+	hPassword, err := s.Auth.CreateHashedPassword(input.Password)
+
+	if err != nil {
+		return "", err
+	}
+
+	user, err := s.Repo.CreateUser(domain.User{
+		Email:    input.Email,
+		Password: hPassword,
+		Phone:    input.Phone,
+	})
+
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s UserService) findUserByEmail(email string) (*domain.User, error) {
-	return nil, nil
+
+	user, err := s.Repo.FindUser(email)
+
+	return &user, err
 }
 
-func (s UserService) Login(input any) (string, error) {
-	return "", nil
+func (s UserService) Login(email string, password string) (string, error) {
+
+	user, err := s.findUserByEmail(email)
+
+	if err != nil {
+		return "", errors.New("user does not exist with the provided email id")
+	}
+
+	err = s.Auth.VerifyPassword(password, user.Password)
+
+	if err != nil {
+		return "", err
+	}
+
+	// generate token
+
+	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {
