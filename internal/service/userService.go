@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"log"
+	"time"
 
 	"github.com/Mukam21/Go_E-Commerce_App/internal/domain"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/dto"
@@ -57,11 +59,77 @@ func (s UserService) Login(email string, password string) (string, error) {
 	return s.Auth.GenerateToken(user.ID, user.Email, user.UserType)
 }
 
+func (s UserService) isVerifiedUser(id uint) bool {
+
+	currentUser, err := s.Repo.FindUserById(id)
+
+	return err == nil && currentUser.Verified
+}
+
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {
-	return 0, nil
+
+	//if user already verified
+	if s.isVerifiedUser(e.ID) {
+		return 0, errors.New("user already verified")
+	}
+
+	// generate verification code
+	code, err := s.Auth.GenerateCode()
+	if err != nil {
+		return 0, nil
+	}
+
+	// update user
+	user := domain.User{
+		Expiry: time.Now().Add(30 * time.Minute),
+		Code:   code,
+	}
+
+	_, err = s.Repo.UpdateUser(e.ID, user)
+
+	if err != nil {
+		return 0, errors.New("unable to update verification code")
+	}
+
+	// send SMS
+
+	// return verification code
+
+	return code, nil
 }
 
 func (s UserService) VerifyCode(id uint, code int) error {
+
+	//if user already verified
+	if s.isVerifiedUser(id) {
+		log.Println("verified...")
+		return errors.New("user already verified")
+	}
+
+	user, err := s.Repo.FindUserById(id)
+
+	if err != nil {
+		return err
+	}
+
+	if user.Code != code {
+		return errors.New("verification code does not match")
+	}
+
+	if !time.Now().Before(user.Expiry) {
+		return errors.New("verificatioin code expired")
+	}
+
+	updateUser := domain.User{
+		Verified: true,
+	}
+
+	_, err = s.Repo.UpdateUser(id, updateUser)
+
+	if err != nil {
+		return errors.New("unable to to verify user")
+	}
+
 	return nil
 }
 
