@@ -2,18 +2,22 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/Mukam21/Go_E-Commerce_App/config"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/domain"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/dto"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/helper"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/repository"
+	"github.com/Mukam21/Go_E-Commerce_App/pkg/notification"
 )
 
 type UserService struct {
-	Repo repository.UserRepository
-	Auth helper.Auth
+	Repo   repository.UserRepository
+	Auth   helper.Auth
+	Config config.AppConfig
 }
 
 func (s UserService) SignUp(input dto.UserSignUp) (string, error) {
@@ -66,17 +70,17 @@ func (s UserService) isVerifiedUser(id uint) bool {
 	return err == nil && currentUser.Verified
 }
 
-func (s UserService) GetVerificationCode(e domain.User) (int, error) {
+func (s UserService) GetVerificationCode(e domain.User) error {
 
 	//if user already verified
 	if s.isVerifiedUser(e.ID) {
-		return 0, errors.New("user already verified")
+		return errors.New("user already verified")
 	}
 
 	// generate verification code
 	code, err := s.Auth.GenerateCode()
 	if err != nil {
-		return 0, nil
+		return nil
 	}
 
 	// update user
@@ -88,14 +92,24 @@ func (s UserService) GetVerificationCode(e domain.User) (int, error) {
 	_, err = s.Repo.UpdateUser(e.ID, user)
 
 	if err != nil {
-		return 0, errors.New("unable to update verification code")
+		return errors.New("unable to update verification code")
 	}
 
+	user, _ = s.Repo.FindUserById(e.ID) // uytgetdim user.ID
+
 	// send SMS
+	notificationClient := notification.NewNotificationClient(s.Config)
+	// notificationClient.SendSMS(user.Phone, strconv.Itoa(code))
+
+	msg := fmt.Sprintf("Your verification code is %v", code)
+	err = notificationClient.SendSMS(user.Phone, msg)
+	if err != nil {
+		return errors.New("error on sending SMS: ")
+	}
 
 	// return verification code
 
-	return code, nil
+	return nil
 }
 
 func (s UserService) VerifyCode(id uint, code int) error {

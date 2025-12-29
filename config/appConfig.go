@@ -8,9 +8,13 @@ import (
 )
 
 type AppConfig struct {
-	ServerPort string
-	Dsn        string
-	AppSecret  string
+	ServerPort   string
+	Dsn          string
+	AppSecret    string
+	Env          string
+	SMSRuApiKey  string
+	EnableSMSDev bool // флаг для реальной отправки в dev
+	TestPhone    string
 }
 
 func SetupEnv() (cfg AppConfig, err error) {
@@ -35,5 +39,11 @@ func SetupEnv() (cfg AppConfig, err error) {
 		return AppConfig{}, errors.New("app secret not found")
 	}
 
-	return AppConfig{ServerPort: httpPort, Dsn: Dsn, AppSecret: appSecret}, nil
+	return AppConfig{
+		ServerPort:  httpPort,
+		Dsn:         Dsn,
+		AppSecret:   appSecret,
+		Env:         os.Getenv("ENV"),
+		SMSRuApiKey: os.Getenv("SMS_RU_API_KEY"),
+	}, nil
 }
