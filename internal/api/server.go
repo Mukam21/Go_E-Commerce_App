@@ -9,6 +9,7 @@ import (
 	"github.com/Mukam21/Go_E-Commerce_App/internal/domain"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/helper"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -31,6 +32,15 @@ func StartServar(config config.AppConfig) {
 	}
 
 	log.Println("migration was successful")
+
+	// cors configuration
+	c := cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3030",
+		AllowHeaders: "Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+	})
+
+	app.Use(c)
 
 	auth := helper.SetupAuth(config.AppSecret)
 
