@@ -12,6 +12,7 @@ import (
 	"github.com/Mukam21/Go_E-Commerce_App/internal/helper"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/repository"
 	"github.com/Mukam21/Go_E-Commerce_App/pkg/notification"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -148,7 +149,7 @@ func (s UserService) VerifyCode(id uint, code int) error {
 	return nil
 }
 
-func (s UserService) CreateProfile(id uint, input any) error {
+func (s UserService) CreateProfile(id uint, input dto.ProfileInput) error {
 	return nil
 }
 
@@ -196,41 +197,99 @@ func (s UserService) BecomeSeller(id uint, input dto.SellerInput) (string, error
 	return token, err
 }
 
-func (s UserService) FindCart(id uint) ([]interface{}, error) {
-	return nil, nil
+func (s UserService) FindCart(id uint) ([]domain.Cart, error) {
+
+	cartItems, err := s.Repo.FindCartItems(id)
+	log.Printf("error %v", err)
+
+	return cartItems, err
 }
 
+// func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]domain.Cart, error) {
+// 	// check if the cart is Exist
+// 	cart, _ := s.Repo.FindCartItem(u.ID, input.ProductId)
+
+// 	if cart.ID > 0 {
+// 		if input.ProductId == 0 {
+// 			return nil, errors.New("please provide a valid product id")
+// 		}
+// 		// => delete the cart item
+// 		if input.Qty < 1 {
+// 			err := s.Repo.DeleteCartById(cart.ID)
+// 			if err != nil {
+// 				log.Printf("Error on deleting cart item %v", err)
+// 				return nil, errors.New("error on deleting cert item")
+// 			}
+// 		} else {
+// 			// => update the cart item
+// 			cart.Qty = input.Qty
+// 			err := s.Repo.UpdateCart(cart)
+// 			if err != nil {
+// 				return nil, errors.New("error on update cert item")
+// 			}
+// 		}
+// 	} else {
+// 		// check if product exist
+// 		product, _ := s.CRepo.FindProductById(int(input.ProductId))
+// 		if product.ID < 1 {
+// 			return nil, errors.New("product not faund to create cart item")
+// 		}
+
+// 		// create cart
+// 		err := s.Repo.CreateCart(domain.Cart{
+// 			UserId:    u.ID,
+// 			ProductId: input.ProductId,
+// 			Name:      product.Name,
+// 			ImageUrl:  product.ImageUrl,
+// 			Qty:       input.Qty,
+// 			Price:     product.Price,
+// 			SellerId:  uint(product.UserId),
+// 		})
+
+// 		if err != nil {
+// 			return nil, errors.New("error on creating cart item")
+// 		}
+// 	}
+
+// 	return s.Repo.FindCartItems(u.ID)
+// }
+
 func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]domain.Cart, error) {
-	// check if the cart is Exist
-	cart, _ := s.Repo.FindCartItem(u.ID, input.ProductId)
+
+	if input.ProductId <= 0 {
+		return nil, errors.New("invalid product id")
+	}
+
+	if input.Qty < 1 {
+		return nil, errors.New("quantity must be greater than 0")
+	}
+
+	cart, err := s.Repo.FindCartItem(u.ID, input.ProductId)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
 
 	if cart.ID > 0 {
-		if input.ProductId == 0 {
-			return nil, errors.New("please provide a valid product id")
-		}
-		// => delete the cart item
+
 		if input.Qty < 1 {
-			err := s.Repo.DeleteCartById(cart.ID)
-			if err != nil {
-				log.Printf("Error on deleting cart item %v", err)
-				return nil, errors.New("error on deleting cert item")
+			if err := s.Repo.DeleteCartById(cart.ID); err != nil {
+				return nil, errors.New("error deleting cart item")
 			}
 		} else {
-			// => update the cart item
 			cart.Qty = input.Qty
-			err := s.Repo.CreateCart(cart)
-			if err != nil {
-				return nil, errors.New("error on update cert item")
+			if err := s.Repo.UpdateCart(cart); err != nil {
+				return nil, errors.New("error updating cart item")
 			}
 		}
+
 	} else {
-		// check if product exist
-		product, _ := s.CRepo.FindProductById(int(input.ProductId))
-		if product.ID > 0 {
-			return nil, errors.New("product not faund to create cart item")
+
+		product, err := s.CRepo.FindProductById(int(input.ProductId))
+		if err != nil {
+			return nil, errors.New("product not found")
 		}
-		// create cart
-		err := s.Repo.CreateCart(domain.Cart{
+
+		err = s.Repo.CreateCart(domain.Cart{
 			UserId:    u.ID,
 			ProductId: input.ProductId,
 			Name:      product.Name,
@@ -241,7 +300,7 @@ func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]d
 		})
 
 		if err != nil {
-			return nil, errors.New("error on creating cart item")
+			return nil, errors.New("error creating cart item")
 		}
 	}
 

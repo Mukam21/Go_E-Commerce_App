@@ -23,10 +23,34 @@ type UserRepository interface {
 	UpdateCart(c domain.Cart) error
 	DeleteCartById(id uint) error
 	DeleteCartItems(uId uint) error
+
+	// Profile
+	CreateProfile(e domain.Address) error
+	UpdateProfile(e domain.Address) error
 }
 
 type userRepository struct {
 	db *gorm.DB
+}
+
+func (r userRepository) CreateProfile(e domain.Address) error {
+	err := r.db.Create(&e).Error
+	if err != nil {
+		log.Printf("error on creating profile with address %v", err)
+		return errors.New("failed to create profile")
+	}
+
+	return nil
+}
+
+func (r userRepository) UpdateProfile(e domain.Address) error {
+	err := r.db.Where("user_id=?", e.UserId).Updates(e).Error
+	if err != nil {
+		log.Printf("error on update profile with address %v", err)
+		return errors.New("failed to create profile")
+	}
+
+	return nil
 }
 
 func (r userRepository) FindCartItems(uId uint) ([]domain.Cart, error) {
@@ -89,7 +113,7 @@ func (r userRepository) FindUser(email string) (domain.User, error) {
 
 	var user domain.User
 
-	err := r.db.First(&user, "email=?", email).Error
+	err := r.db.Preload("Address").First(&user, "email=?", email).Error
 
 	if err != nil {
 		log.Printf("finnd user error %v", err)
