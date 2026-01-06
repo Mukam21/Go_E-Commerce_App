@@ -24,6 +24,11 @@ type UserRepository interface {
 	DeleteCartById(id uint) error
 	DeleteCartItems(uId uint) error
 
+	// Order
+	CreateOrder(o domain.Order) error
+	FindOrders(uId uint) ([]domain.Order, error)
+	FindOrderById(id uint) (domain.Order, error)
+
 	// Profile
 	CreateProfile(e domain.Address) error
 	UpdateProfile(e domain.Address) error
@@ -31,6 +36,21 @@ type UserRepository interface {
 
 type userRepository struct {
 	db *gorm.DB
+}
+
+// CreateOrder implements [UserRepository].
+func (r *userRepository) CreateOrder(o domain.Order) error {
+	panic("unimplemented")
+}
+
+// FindOrderById implements [UserRepository].
+func (r *userRepository) FindOrderById(id uint) (domain.Order, error) {
+	panic("unimplemented")
+}
+
+// FindOrders implements [UserRepository].
+func (r *userRepository) FindOrders(uId uint) ([]domain.Order, error) {
+	panic("unimplemented")
 }
 
 func (r userRepository) CreateProfile(e domain.Address) error {
@@ -91,12 +111,6 @@ func (r userRepository) CreateBankAccount(e domain.BankAccount) error {
 	return r.db.Create(&e).Error
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
-	return &userRepository{
-		db: db,
-	}
-}
-
 func (r userRepository) CreateUser(usr domain.User) (domain.User, error) {
 
 	err := r.db.Create(&usr).Error
@@ -149,4 +163,11 @@ func (r userRepository) UpdateUser(id uint, u domain.User) (domain.User, error) 
 	}
 
 	return user, nil
+}
+
+// NewUserRepository create a new UserRepository
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &userRepository{
+		db: db,
+	}
 }

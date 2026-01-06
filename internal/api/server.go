@@ -33,6 +33,8 @@ func StartServar(config config.AppConfig) {
 		&domain.Category{},
 		&domain.Product{},
 		&domain.Cart{},
+		&domain.OrderItems{},
+		&domain.Order{},
 	)
 	if err != nil {
 		log.Fatalf("error on runing migration %v", err.Error())

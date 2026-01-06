@@ -332,6 +332,46 @@ func (s UserService) CreateCart(input dto.CreateCartRequest, u domain.User) ([]d
 }
 
 func (s UserService) CreateOrder(u domain.User) (int, error) {
+
+	cartItems, err := s.Repo.FindCartItems(u.ID)
+	if err != nil {
+		return 0, errors.New("error on finding cart items")
+	}
+
+	if len(cartItems) == 0 {
+		return 0, errors.New("cart is empity cannot the order")
+	}
+
+	paymentId := "PAY12345"
+	txnId := "TXN12345"
+	orderRef, _ := helper.RandomNomber(8)
+
+	var amount float64
+	var orderItems []domain.OrderItem
+
+	for _, item := range cartItems {
+		amount += item.Price * float64(item.Qty)
+		orderItems = append(orderItems, domain.OrderItem{
+			ProductId: item.ProductId,
+			Qty:       item.Qty,
+			Price:     item.Price,
+			Name:      item.Name,
+			ImageUrl:  item.ImageUrl,
+			SellerId:  item.SellerId,
+		})
+	}
+
+	order := domain.Order{
+		UserId:         u.ID,
+		PaymentId:      paymentId,
+		TransactionId:  txnId,
+		OrderRefNumber: uint(orderRef),
+		Amount:         amount,
+		Items:          orderItems,
+	}
+
+	err = s.Repo.CreateOrder(order)
+
 	return 0, nil
 }
 
