@@ -28,6 +28,7 @@ func StartServar(config config.AppConfig) {
 
 	err = db.AutoMigrate(
 		&domain.User{},
+		&domain.Address{},
 		&domain.BankAccount{},
 		&domain.Category{},
 		&domain.Product{},
