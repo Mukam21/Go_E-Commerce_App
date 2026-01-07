@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/Mukam21/Go_E-Commerce_App/internal/api/rest"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/dto"
@@ -252,14 +253,31 @@ func (h *UserHandler) CreatOrder(ctx *fiber.Ctx) error {
 	})
 }
 func (h *UserHandler) GetOrders(ctx *fiber.Ctx) error {
+
+	user := h.svc.Auth.GetCurrentUser(ctx)
+	orders, err := h.svc.GetOrders(user)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
 		"message": "get orders",
+		"orders":  orders,
 	})
 }
 
 func (h *UserHandler) GetOrder(ctx *fiber.Ctx) error {
+	orderId, _ := strconv.Atoi(ctx.Params("id"))
+	user := h.svc.Auth.GetCurrentUser(ctx)
+
+	order, err := h.svc.GetOrderById(uint(orderId), user.ID)
+	if err != nil {
+		return rest.InternalError(ctx, err)
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
 		"message": "get order by id",
+		"order":   order,
 	})
 }
 

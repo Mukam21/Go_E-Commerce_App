@@ -27,7 +27,7 @@ type UserRepository interface {
 	// Order
 	CreateOrder(o domain.Order) error
 	FindOrders(uId uint) ([]domain.Order, error)
-	FindOrderById(id uint) (domain.Order, error)
+	FindOrderById(id uint, uId uint) (domain.Order, error)
 
 	// Profile
 	CreateProfile(e domain.Address) error
@@ -38,19 +38,36 @@ type userRepository struct {
 	db *gorm.DB
 }
 
-// CreateOrder implements [UserRepository].
-func (r *userRepository) CreateOrder(o domain.Order) error {
-	panic("unimplemented")
+func (r userRepository) CreateOrder(o domain.Order) error {
+	err := r.db.Create(&o).Error
+	if err != nil {
+		log.Printf("error on creating order %v", err)
+		return errors.New("failed to create order")
+	}
+
+	return nil
 }
 
-// FindOrderById implements [UserRepository].
-func (r *userRepository) FindOrderById(id uint) (domain.Order, error) {
-	panic("unimplemented")
+func (r userRepository) FindOrders(uId uint) ([]domain.Order, error) {
+	var orders []domain.Order
+	err := r.db.Where("user_id=?", uId).Find(&orders).Error
+	if err != nil {
+		log.Printf("error on fetching order %v", err)
+		return nil, errors.New("failed to fetch orders")
+	}
+
+	return orders, nil
 }
 
-// FindOrders implements [UserRepository].
-func (r *userRepository) FindOrders(uId uint) ([]domain.Order, error) {
-	panic("unimplemented")
+func (r userRepository) FindOrderById(id uint, uId uint) (domain.Order, error) {
+	var order domain.Order
+	err := r.db.Preload("Items").Where("id=? AND user_id=?", id, uId).First(&order).Error
+	if err != nil {
+		log.Printf("error on fetching order %v", err)
+		return domain.Order{}, errors.New("failed to fetch order")
+	}
+
+	return order, nil
 }
 
 func (r userRepository) CreateProfile(e domain.Address) error {
@@ -141,7 +158,10 @@ func (r userRepository) FindUserById(id uint) (domain.User, error) {
 
 	var user domain.User
 
-	err := r.db.Preload("Address").First(&user, id).Error
+	err := r.db.Preload("Address").
+		Preload("Cart").
+		Preload("Orders").
+		First(&user, id).Error
 
 	if err != nil {
 		log.Printf("finnd user error %v", err)

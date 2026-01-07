@@ -8,6 +8,7 @@ import (
 	"github.com/Mukam21/Go_E-Commerce_App/internal/api/rest/handlers"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/domain"
 	"github.com/Mukam21/Go_E-Commerce_App/internal/helper"
+	"github.com/Mukam21/Go_E-Commerce_App/pkg/payment"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"gorm.io/driver/postgres"
@@ -33,8 +34,9 @@ func StartServar(config config.AppConfig) {
 		&domain.Category{},
 		&domain.Product{},
 		&domain.Cart{},
-		&domain.OrderItems{},
 		&domain.Order{},
+		&domain.OrderItem{},
+		&domain.Payment{},
 	)
 	if err != nil {
 		log.Fatalf("error on runing migration %v", err.Error())
@@ -53,11 +55,14 @@ func StartServar(config config.AppConfig) {
 
 	auth := helper.SetupAuth(config.AppSecret)
 
+	paymentClient := payment.NewPaymentClient(config.StripeSecret, config.SuccessURL, config.CancelURL)
+
 	rh := &rest.RestHandler{
 		App:    app,
 		DB:     db,
 		Auth:   auth,
 		Config: config,
+		Pc:     paymentClient,
 	}
 
 	setupRoutes(rh)
@@ -69,6 +74,7 @@ func setupRoutes(rh *rest.RestHandler) {
 	// user handler
 	handlers.SetupUserRoutes(rh)
 	// transactions
+	handlers.SetupTransactionRoutes(rh)
 	// catalog
 	handlers.SetupCatalogRoutes(rh)
 }

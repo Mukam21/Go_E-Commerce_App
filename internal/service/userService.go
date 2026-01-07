@@ -371,14 +371,32 @@ func (s UserService) CreateOrder(u domain.User) (int, error) {
 	}
 
 	err = s.Repo.CreateOrder(order)
+	if err != nil {
+		return 0, err
+	}
 
-	return 0, nil
+	err = s.Repo.DeleteCartItems(u.ID)
+	log.Printf("Deleting cart items Error %v", err)
+
+	return orderRef, nil
 }
 
-func (s UserService) GetOrders(u domain.User) ([]interface{}, error) {
-	return nil, nil
+func (s UserService) GetOrders(u domain.User) ([]domain.Order, error) {
+
+	orders, err := s.Repo.FindOrders(u.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return orders, nil
 }
 
-func (s UserService) GetOrderById(id uint, uId uint) (interface{}, error) {
-	return nil, nil
+func (s UserService) GetOrderById(id uint, uId uint) (domain.Order, error) {
+
+	order, err := s.Repo.FindOrderById(id, uId)
+	if err != nil {
+		return order, err
+	}
+
+	return order, nil
 }

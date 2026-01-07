@@ -15,6 +15,9 @@ type AppConfig struct {
 	SMSRuApiKey  string
 	EnableSMSDev bool // флаг для реальной отправки в dev
 	TestPhone    string
+	StripeSecret string
+	SuccessURL   string
+	CancelURL    string
 }
 
 func SetupEnv() (cfg AppConfig, err error) {
@@ -40,10 +43,13 @@ func SetupEnv() (cfg AppConfig, err error) {
 	}
 
 	return AppConfig{
-		ServerPort:  httpPort,
-		Dsn:         Dsn,
-		AppSecret:   appSecret,
-		Env:         os.Getenv("ENV"),
-		SMSRuApiKey: os.Getenv("SMS_RU_API_KEY"),
+		ServerPort:   httpPort,
+		Dsn:          Dsn,
+		AppSecret:    appSecret,
+		Env:          os.Getenv("ENV"),
+		SMSRuApiKey:  os.Getenv("SMS_RU_API_KEY"),
+		StripeSecret: os.Getenv("STRIPE_SECRET"),
+		SuccessURL:   os.Getenv("SUCCESS_URL"),
+		CancelURL:    os.Getenv("CANCEL_URL"),
 	}, nil
 }

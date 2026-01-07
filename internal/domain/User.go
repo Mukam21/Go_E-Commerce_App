@@ -17,6 +17,9 @@ type User struct {
 	Code      int       `json:"code"`
 	Expiry    time.Time `json:"expiry"`
 	Address   Address   `json:"address"` // relation
+	Cart      Cart      `json:"cart"`    // relation
+	Orders    []Order   `json:"orders"`  // relation
+	Payment   []Payment `json:"payment"` // relation
 	Verified  bool      `json:"verified" gorm:"default:false"`
 	UserType  string    `json:"user_type" gorm:"default:buyer"`
 	CreatedAt time.Time `json:"created_at" gorm:"default:current_timestamp"`
